@@ -1,17 +1,17 @@
-# pbs-monitoring — Dashboard Usage
+# Dashboard usage
 
-Import the JSON files using **Grafana → Dashboards → New → Import**. Set the data source and variables listed in [configuration](./configuration.md).
+Import the JSON files using **Grafana → Dashboards → New → Import**. Set the data source and variables listed in [configuration](configuration.md).
 
 ## Proxmox Backup Server
 
-Source: [pbs-backups.json](../dashboards/pbs-backups.json). Refresh: `30s`.
+Source: [`dashboards/pbs-backups.json`](https://github.com/willtheorangeguy/pbs-monitoring/blob/HEAD/dashboards/pbs-backups.json). Refresh: `30s`.
 
 <!-- Screenshot: after adding pbs-backups.png to .github/icons/pbs-monitoring/, replace this comment with ![Proxmox Backup Server](https://raw.githubusercontent.com/willtheorangeguy/.github/main/icons/pbs-monitoring/pbs-backups.png). -->
 
 ### Panels
 
 | Panel | Type | What it shows |
-|---|---|---|
+| --- | --- | --- |
 | PBS API / Exporter | stat | See the query reference below. |
 | Total Snapshots | stat | See the query reference below. |
 | Protected VM / CT Entries | stat | Distinct snapshot groups in the selected datastore(s); the same VM ID on two PVE hosts may represent different machines. |
@@ -118,7 +118,7 @@ pbs_snapshot_vm_last_verify{job="${job_pbs}",datastore=~"$datastore"}
 pbs_snapshot_vm_count{job="${job_pbs}",datastore=~"$datastore"}
 ```
 
-#### Snapshot Count by Datastore
+#### Datastore snapshot count query
 
 ```promql
 sum by (datastore) (pbs_snapshot_count{job="${job_pbs}",datastore=~"$datastore"})
