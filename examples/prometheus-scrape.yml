@@ -1,0 +1,6 @@
+# Add these entries under scrape_configs in prometheus.yml. Replace example hosts and token paths.
+- job_name: pbs
+  scrape_interval: 60s
+  scrape_timeout: 45s
+  static_configs:
+    - targets: [pbs-exporter.example:10019]

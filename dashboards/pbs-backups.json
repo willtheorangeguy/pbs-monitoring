@@ -1,0 +1,633 @@
+{
+  "uid": "pbs-backups",
+  "title": "Proxmox Backup Server",
+  "description": "Backup snapshots, verification state, and per-datastore capacity from the natrontech PBS exporter. Adapted from the exporter maintainer dashboard.",
+  "tags": [
+    "pbs",
+    "backup",
+    "storage"
+  ],
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": false,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "prometheus_ds",
+        "label": "Prometheus data source",
+        "type": "datasource",
+        "query": "prometheus",
+        "hide": 0,
+        "refresh": 1,
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "name": "job_pbs",
+        "label": "Prometheus job: pbs",
+        "type": "textbox",
+        "query": "pbs",
+        "hide": 0,
+        "refresh": 0,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "pbs",
+          "value": "pbs"
+        }
+      },
+      {
+        "name": "datastore",
+        "label": "Datastore",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${prometheus_ds}"
+        },
+        "query": {
+          "query": "label_values(pbs_snapshot_count{job=\"${job_pbs}\"}, datastore)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "PBS API / Exporter",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pbs_up{job=\"${job_pbs}\"} * on(job, instance) up{job=\"${job_pbs}\"}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Snapshots",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(pbs_snapshot_count{job=\"${job_pbs}\",datastore=~\"$datastore\"})",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Protected VM / CT Entries",
+      "description": "Distinct snapshot groups in the selected datastore(s); the same VM ID on two PVE hosts may represent different machines.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(pbs_snapshot_vm_count{job=\"${job_pbs}\",datastore=~\"$datastore\"})",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Newest Snapshot Age",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - max(pbs_snapshot_vm_last_timestamp{job=\"${job_pbs}\",datastore=~\"$datastore\"})",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Snapshots Over 48h Old",
+      "description": "Counts per-VM last snapshots older than 48 hours; not a backup-job failure count.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count((time() - pbs_snapshot_vm_last_timestamp{job=\"${job_pbs}\",datastore=~\"$datastore\"}) > 172800) or vector(0)",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Last-Snapshot Verify Flag = 0",
+      "description": "Raw exporter verify flag for each VM's latest snapshot. Zero is not assumed to mean a failed verification; unverified or pending snapshots may also be zero.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(pbs_snapshot_vm_last_verify{job=\"${job_pbs}\",datastore=~\"$datastore\"} == 0) or vector(0)",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Snapshot Count by Datastore",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (datastore) (pbs_snapshot_count{job=\"${job_pbs}\",datastore=~\"$datastore\"})",
+          "legendFormat": "{{datastore}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Datastore Capacity",
+      "description": "Used and available bytes by datastore. Separate datastores may share a backing filesystem; do not sum these as physical capacity.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (datastore) (pbs_used{job=\"${job_pbs}\"})",
+          "legendFormat": "{{datastore}} used"
+        },
+        {
+          "refId": "B",
+          "expr": "max by (datastore) (pbs_available{job=\"${job_pbs}\"})",
+          "legendFormat": "{{datastore}} available"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "Highest Datastore Usage",
+      "description": "Highest reported datastore use percentage; not a sum of physical storage.",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(100 * pbs_used{job=\"${job_pbs}\"} / pbs_size{job=\"${job_pbs}\"})",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 75
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true
+      }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Lowest Datastore Available Space",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "min(pbs_available{job=\"${job_pbs}\"})",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Largest Datastore Size",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(pbs_size{job=\"${job_pbs}\"})",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Latest Snapshot by VM / CT",
+      "description": "Unix snapshot time converted to Grafana milliseconds. Verify flag is the exporter's raw latest-snapshot state, not a failure count.",
+      "gridPos": {
+        "h": 13,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pbs_snapshot_vm_last_timestamp{job=\"${job_pbs}\",datastore=~\"$datastore\"} * 1000",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "pbs_snapshot_vm_last_verify{job=\"${job_pbs}\",datastore=~\"$datastore\"}",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "vm_name",
+            "mode": "outer"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #A"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Snapshot Count by VM / CT",
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 30
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pbs_snapshot_vm_count{job=\"${job_pbs}\",datastore=~\"$datastore\"}",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      }
+    },
+    {
+      "id": 14,
+      "type": "bargauge",
+      "title": "Snapshot Count by Datastore",
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (datastore) (pbs_snapshot_count{job=\"${job_pbs}\",datastore=~\"$datastore\"})",
+          "legendFormat": "{{datastore}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        }
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal"
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Latest Snapshot Age by Datastore",
+      "description": "Age of newest VM snapshot in each datastore.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_ds}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - max by (datastore) (pbs_snapshot_vm_last_timestamp{job=\"${job_pbs}\",datastore=~\"$datastore\"})",
+          "legendFormat": "{{datastore}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    }
+  ]
+}
