@@ -1,33 +1,55 @@
-# Proxmox Backup Server dashboard
+<h1 align="center">pbs-monitoring</h1>
+<h4 align="center">A Grafana dashboard for PBS snapshots, datastore usage and recent backup age using natrontech/pbs-exporter.</h4>
 
-Portable monitoring bundle with example configuration. Replace example addresses and token paths for your installation; no live credentials are included.
+<div align="center">
+  <img alt="GitHub Issues" src="https://img.shields.io/github/issues/willtheorangeguy/pbs-monitoring">
+  <img alt="GitHub Pull Requests" src="https://img.shields.io/github/issues-pr/willtheorangeguy/pbs-monitoring">
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue">
+  <img alt="gitleaks workflow" src="https://github.com/willtheorangeguy/pbs-monitoring/actions/workflows/gitleaks.yml/badge.svg">
+  <img alt="testing workflow" src="https://github.com/willtheorangeguy/pbs-monitoring/actions/workflows/testing.yml/badge.svg">
+</div>
 
-## Requirements
+<p align="center">
+  <a href="#key-features">Key Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#documentation">Documentation</a> •
+  <a href="#support">Support</a> •
+  <a href="#contributing">Contributing</a> •
+  <a href="#license">License</a>
+</p>
 
-The natrontech/pbs-exporter and a Prometheus scrape job.
+<!-- Screenshot: after adding pbs-monitoring/overview.png to .github/icons/, replace this comment with ![Dashboard overview](https://raw.githubusercontent.com/willtheorangeguy/.github/main/icons/pbs-monitoring/overview.png). -->
 
-## Dashboards
+A Grafana dashboard for PBS snapshots, datastore usage and recent backup age using natrontech/pbs-exporter.
 
-- `dashboards/pbs-backups.json`
+## Key Features
 
-Import the JSON in Grafana using **Dashboards > New > Import**. Select your data source from the dashboard variable(s) at the top. Update the Prometheus job variables to match your `scrape_configs` job names; use the Instance selector when present. The dashboard's JSON is also suitable for file provisioning after you have selected or provisioned data source UIDs.
+- Snapshot counts and latest backup age by VM or CT.
+- Datastore capacity and usage panels.
+- Raw latest snapshot verification flags.
+- Datastore and job selectors for focused views.
 
-Expected default job labels:
+## Installation
 
-- `pbs-backups.json`: pbs
+natrontech/pbs-exporter with read-only Audit and DatastoreAudit permissions, Prometheus and Grafana. Install and configure the upstream natrontech/pbs-exporter with PBS credentials. Adapt examples/prometheus-scrape.yml, confirm pbs_up is available and import dashboards/pbs-backups.json. See [installation](docs/installation.md) for more detail.
 
-## Monitoring code
+## Usage
 
-See the code and example configuration in this folder, if present. Keep API keys and metrics bearer tokens in local secret files or another secret manager; never commit them. Scrape examples use documentation addresses and must be edited for your network.
+Import [pbs-backups.json](dashboards/pbs-backups.json) in Grafana using **Dashboards → New → Import**. Choose the data source and match the dashboard variables to your monitoring labels. See [dashboard usage](docs/usage.md).
 
-## Before publishing
+## Documentation
 
-Test against the application and Grafana versions you intend to support. Add a license you choose and check attribution for upstream components. No release or Grafana catalog upload has been performed.
+Full documentation lives in [docs/](docs/README.md): [Quickstart](docs/quickstart.md) · [Configuration](docs/configuration.md) · [Architecture](docs/architecture.md) · [Dashboard usage](docs/usage.md) · [Troubleshooting](docs/troubleshooting.md).
 
-## PBS setup
+## Support
 
-Install the upstream natrontech/pbs-exporter with read-only `Audit` and `DatastoreAudit` permissions. Scrape it as job `pbs`, then select that job in the dashboard. Multiple datastores can share one backing filesystem; do not sum their reported capacity as though it were separate physical storage.
+Open a [GitHub Discussion](https://github.com/willtheorangeguy/pbs-monitoring/discussions/new) or file an [issue](https://github.com/willtheorangeguy/pbs-monitoring/issues/new/choose).
 
-The dashboard adapts the pbs-exporter maintainer dashboard; check and retain upstream attribution and license terms before publication. Capacity panels show each datastore separately because datastores can share physical storage.
+## Contributing
 
-A sample `scrape_configs` fragment is in `examples/prometheus-scrape.yml`; replace the example hosts and token paths.
+Contributions welcome. See the org-wide [Contributing Guide](https://github.com/willtheorangeguy/.github/blob/main/CONTRIBUTING.md) and [Code of Conduct](https://github.com/willtheorangeguy/.github/blob/main/CODE_OF_CONDUCT.md).
+
+## License
+
+MIT — see [LICENSE.md](LICENSE.md).
